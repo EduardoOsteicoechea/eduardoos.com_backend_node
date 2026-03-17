@@ -8,8 +8,9 @@ import { dbClient } from '../../utils/dbClient';
 import { authTableName } from '../../utils/authTable';
 import { LoginInput } from '../../schemas/authSchema';
 import { jwtEncryptionAlgorithmName } from '../../utils/jwtEncryptionAlgorithmName';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback_dev_secret';
+import { JWT_SECRET } from '../../utils/jwtSecret';
+import generateAccessToken from '../../utils/generateAccessToken';
+import setSecureCookie from '../../utils/setSecureCookie';
 
 function invalidRequestError(res: Response) {
 
@@ -66,14 +67,7 @@ export const login = async (req: Request, res: Response) => {
       // 4. Generate the access token
 
       const userId = userResult.Item.id.S!;
-      const accessToken = jwt.sign(
-         { id: userId, email: normalizedEmail },
-         JWT_SECRET,
-         {
-            expiresIn: '15m',
-            algorithm: jwtEncryptionAlgorithmName
-         }
-      );
+      const accessToken = generateAccessToken(userId, normalizedEmail);
 
       // 5. Generate the refresh token
 
@@ -94,22 +88,20 @@ export const login = async (req: Request, res: Response) => {
          }
       }));
 
-      // 7. Atach http only cookies 
+      // 7. Atach http only cookies
 
-      res.cookie("accessToken", accessToken, {
-         httpOnly: true,
-         secure: process.env.NODE_ENV === "production",
-         sameSite: 'strict',
-         maxAge: 15 * 60 * 1000
-      });
+      setSecureCookie(res, 
+         'accessToken', 
+         accessToken, 
+         15 * 60 * 1000
+      );
 
-      res.cookie("refreshToken", refreshTokenId, {
-         httpOnly: true,
-         secure: process.env.NODE_ENV === "production",
-         sameSite: "strict",
-         path: "/api/refresh",
-         maxAge: 7 * 24 * 60 * 60 * 1000
-      });
+      setSecureCookie(res, 
+         'refreshToken', 
+         refreshTokenId, 
+         7 * 24 * 60 * 60 * 1000, 
+         "/api/refresh"
+      );
 
       // 8. Return success
 

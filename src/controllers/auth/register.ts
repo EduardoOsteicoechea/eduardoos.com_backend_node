@@ -6,7 +6,6 @@ import { TransactWriteItemsCommand } from '@aws-sdk/client-dynamodb';
 import { dbClient } from '../../utils/dbClient';
 import { authTableName } from '../../utils/authTable';
 
-
 export const register = async (req: Request, res: Response) => {
    try {
 
