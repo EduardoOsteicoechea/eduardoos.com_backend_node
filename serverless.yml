@@ -1,0 +1,70 @@
+useDotenv: true
+service: backend-node
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  region: us-east-1
+  stage: ${opt:stage, 'dev'}
+  memorySize: 256
+  profile: AdministratorAccess-241533144630
+  # 1. Give the Lambda permission to talk to the DB
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:PutItem
+            - dynamodb:GetItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+            - dynamodb:Query
+          Resource: !GetAtt AuthTable.Arn
+
+environment:
+    JWT_SECRET: ${ssm:/${self:service}/${self:provider.stage}/JWT_SECRET, env:JWT_SECRET}
+
+build:
+  esbuild: false 
+
+functions:
+  api:
+    handler: src/index.handler
+    events:
+      - httpApi: "*"
+
+plugins:
+  - serverless-esbuild
+  - serverless-offline
+  - serverless-api-gateway-throttling
+
+custom:
+  esbuild:
+    bundle: true
+    minify: false
+    platform: node
+    target: node20
+    format: cjs        # CommonJS output works with Node's default mode
+  serverless-offline:
+    noPrependStageInUrl: true
+
+  apiGatewayThrottling:
+    maxRequestsPerSecond: 50
+    maxConcurrentRequests: 100
+
+resources:
+  Resources:
+    AuthTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:service}-${self:provider.stage}-auth
+        AttributeDefinitions:
+          - AttributeName: pk
+            AttributeType: S
+        KeySchema:
+          - AttributeName: pk
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+        TimeToLiveSpecification:
+          AttributeName: expiresAt
+          Enabled: true
