@@ -7,6 +7,7 @@ import { GetItemCommand, PutItemCommand } from '@aws-sdk/client-dynamodb';
 import { dbClient } from '../../utils/dbClient';
 import { authTableName } from '../../utils/authTable';
 import { LoginInput } from '../../schemas/authSchema';
+import { jwtEncryptionAlgorithmName } from '../../utils/jwtEncryptionAlgorithmName';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_dev_secret';
 
@@ -68,11 +69,14 @@ export const login = async (req: Request, res: Response) => {
       const accessToken = jwt.sign(
          { id: userId, email: normalizedEmail },
          JWT_SECRET,
-         { expiresIn: '15m' }
+         {
+            expiresIn: '15m',
+            algorithm: jwtEncryptionAlgorithmName
+         }
       );
 
       // 5. Generate the refresh token
-      
+
       const refreshTokenId = crypto.randomBytes(32).toString('hex');
       const refreshTokenPk = `REFRESH#${refreshTokenId}`;
       const sevenDaysInSeconds = 7 * 24 * 60 * 60;
@@ -92,7 +96,7 @@ export const login = async (req: Request, res: Response) => {
 
       // 7. Atach http only cookies 
 
-      res.cookie("accessToken", refreshTokenId, {
+      res.cookie("accessToken", accessToken, {
          httpOnly: true,
          secure: process.env.NODE_ENV === "production",
          sameSite: 'strict',

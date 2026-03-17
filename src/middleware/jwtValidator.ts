@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken'
+import jwt from 'jsonwebtoken';
+import { jwtEncryptionAlgorithmName } from '../utils/jwtEncryptionAlgorithmName';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_dev_secret';
 
@@ -16,7 +17,7 @@ export const jwtValidator = (req: Request, res: Response, next: NextFunction) =>
       }
 
       const decodedPayload = jwt.verify(token, JWT_SECRET, {
-         algorithms: ['HS256']
+         algorithms: [jwtEncryptionAlgorithmName]
       });
 
       (req as any).user = decodedPayload;

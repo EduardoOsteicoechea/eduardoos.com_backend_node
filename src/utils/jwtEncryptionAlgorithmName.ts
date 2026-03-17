@@ -1,0 +1,1 @@
+export const jwtEncryptionAlgorithmName = 'HS256';
