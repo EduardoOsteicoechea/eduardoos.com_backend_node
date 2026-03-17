@@ -15,7 +15,9 @@ export const jwtValidator = (req: Request, res: Response, next: NextFunction) =>
          });
       }
 
-      const decodedPayload = jwt.verify(token, JWT_SECRET);
+      const decodedPayload = jwt.verify(token, JWT_SECRET, {
+         algorithms: ['HS256']
+      });
 
       (req as any).user = decodedPayload;
 
